@@ -12,7 +12,7 @@
 # File structure
 + train.py
 + test.py
-+ mymodule.py
++ mymodule.py # contains dataset and model which can be shared for train.py and test.py
 + training_set/training_set/ # dataset
     + cats/*.jpg
     + dogs/*.jpg
@@ -54,4 +54,15 @@ more arguments:
 testing can share exp-name with training because the files of testing result will have prefix "testing".
 
 # More
++ Coding style
+    + as precise as possible
+    + as comprehensive as possible
++ Improvement than usual:
+    + learning rate scheduler which is widely use in SOTA CV
+    + more compelte metrics
+        + At training step, compute metrics independent from threshold.
+        + At testing step, threshold optimization can be applied and plotting AUROC & AUPRC curves are needed.
+    + output top-10 worst predicted images by ranking of loss -> improve image quality in real scenario. 
++ Use CNN for the toy model is a trade-off between accuracy and efficiency. (SVM is weak but ViT is large)
++ Output prediction results for further post-analysis if needed.
 + Feel free to contact me if you have any question. Thanks.
