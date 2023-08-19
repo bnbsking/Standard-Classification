@@ -49,7 +49,7 @@ python test.py [--options]
 more arguments:
 + batch_size: int, default=16
 + exp-name: str, default="exp1" # output directory under ./output
-+ model-path: str, default="exp1"
++ model-path: str, default="exp1/model_ep22.pt"
 
 testing can share exp-name with training because the files of testing result will have prefix "testing".
 
