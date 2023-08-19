@@ -34,19 +34,22 @@ For testing only please download the weights from [here](https://drive.google.co
 ```
 python train.py [--options]
 ```
+
 more arguments:
-    + batch_size: int, default=16
-    + epochs: int, default=30
-    + lr-scheduler: str, default="linear"
-    + exp-name: str, default="exp1" # output directory under ./output
++ batch_size: int, default=16
++ epochs: int, default=30
++ lr-scheduler: str, default="linear"
++ exp-name: str, default="exp1" # output directory under ./output
+
 ### test
 ```
 python test.py [--options]
 ```
+
 more arguments:
-    + batch_size: int, default=16
-    + exp-name: str, default="exp1" # output directory under ./output
-    + model-path: str, default="exp1"
++ batch_size: int, default=16
++ exp-name: str, default="exp1" # output directory under ./output
++ model-path: str, default="exp1"
 testing can share exp-name with training because the files of testing result will have prefix "testing".
 
 # More
