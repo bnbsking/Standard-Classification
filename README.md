@@ -16,7 +16,7 @@
 + training_set/training_set/ # dataset
     + cats/*.jpg
     + dogs/*.jpg
-+ testing_set/testing_set/ # dataset
++ test_set/test_set/ # dataset
     + cats/*.jpg
     + dogs/*.jpg
 + output/ # (auto-generated while training and testing)
