@@ -7,7 +7,7 @@
 + matplotlib
 + pandas
 ### Hardware
-+ Since using ResNet50 (25M parameters) as Model, GPU momory >= 4GB is avilable
++ Since using ResNet50 (25M parameters) as Model, GPU momory >= 4GB is available
 
 # File structure
 + train.py
