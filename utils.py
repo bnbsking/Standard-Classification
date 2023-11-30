@@ -220,8 +220,8 @@ def row_plot_1d(data, xlabel_list, ylabel_list, legend_list, save_path):
     """
     n = len(data)
     plt.figure(figsize=(6*n,4))
-    Z = zip(data, xlabel_list, ylabel_list, legend_list)
-    for i, (curves, xlabel, ylabel, legend) in enumerate(Z):
+    zip_gen = zip(data, xlabel_list, ylabel_list, legend_list)
+    for i, (curves, xlabel, ylabel, legend) in enumerate(zip_gen):
         plt.subplot(1,n,1+i)
         for curve in curves:
             plt.plot(curve)
@@ -237,8 +237,8 @@ def row_plot_2d(data_x, data_y, xlabel_list, ylabel_list, legend_list, save_path
     """
     n = len(data_x)
     plt.figure(figsize=(6*n,4))
-    Z = zip(data_x, data_y, xlabel_list, ylabel_list, legend_list)
-    for i, (curves_x, curves_y, xlabel, ylabel, legend) in enumerate(Z):
+    zip_gen = zip(data_x, data_y, xlabel_list, ylabel_list, legend_list)
+    for i, (curves_x, curves_y, xlabel, ylabel, legend) in enumerate(zip_gen):
         plt.subplot(1,n,1+i)
         for curve_x, curve_y in zip(curves_x, curves_y):
             plt.plot(curve_x, curve_y)

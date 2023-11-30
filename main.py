@@ -1,9 +1,9 @@
 """
 + metrics
 h: history, v: single
-        loss, f1s, f1, aps, map, cls_report, aucs, auc, spec, specs, confusion, export_wst, prt, pr
+        loss, f1s, f1, aps, map, cls_report, aucs, auc, spec, specs, confusion, export_wst, prt, pr, roc
 train:  h     v    h   v    h    v
-valid:  v     v    v   v    v    v           v     v    v     v      v          v           v    v
+valid:  v     v    v   v    v    v           v     v    v     v      v          v           v    v   v
 infer:                                                                          v
 + in object detection: p~r~1 since bg>>fg -> not compute bg metrics, do threshold optimization
 + in cls with bgcls: compute metrics is important, can do threshold optimization
@@ -47,12 +47,12 @@ device = torch.device('cuda')
 
 # prepare dataset
 if 1: # customize part
-    train_c0 = sorted(glob.glob("./training_set/training_set/cats/*.jpg"))[:30]
-    train_c1 = sorted(glob.glob("./training_set/training_set/dogs/*.jpg"))[:30]
+    train_c0 = sorted(glob.glob("./training_set/training_set/cats/*.jpg"))
+    train_c1 = sorted(glob.glob("./training_set/training_set/dogs/*.jpg"))
     train_path  = train_c0 + train_c1
     train_label = [0]*len(train_c0) + [1]*len(train_c1)
-    valid_c0 = sorted(glob.glob("./test_set/test_set/cats/*.jpg"))[:20]
-    valid_c1 = sorted(glob.glob("./test_set/test_set/dogs/*.jpg"))[:20]
+    valid_c0 = sorted(glob.glob("./test_set/test_set/cats/*.jpg"))
+    valid_c1 = sorted(glob.glob("./test_set/test_set/dogs/*.jpg"))
     valid_path = infer_path = valid_c0 + valid_c1
     valid_label = [0]*len(valid_c0) + [1]*len(valid_c1)
 if args.mode == 'train':
