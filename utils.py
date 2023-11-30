@@ -1,10 +1,10 @@
-import json, math, shutil, os
+import json, math, os, shutil
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import f1_score, average_precision_score, classification_report
-from sklearn.metrics import roc_auc_score, roc_curve, precision_recall_curve, roc_curve
+from sklearn.metrics import roc_auc_score, roc_curve, precision_recall_curve
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms

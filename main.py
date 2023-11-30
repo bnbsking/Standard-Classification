@@ -8,7 +8,7 @@ infer:                                                                          
 + in object detection: p~r~1 since bg>>fg -> not compute bg metrics, do threshold optimization
 + in cls with bgcls: compute metrics is important, can do threshold optimization
 """
-import argparse, os, glob, json
+import argparse, glob, json, os
 
 import numpy as np
 import pandas as pd
