@@ -25,7 +25,7 @@ parser.add_argument("--resume", type=str, default='', help="checkpoint path")
 parser.add_argument("--epochs", type=int, default=50)
 parser.add_argument("--results", type=str, default="./results/exp1", help="save results and models folder")
 parser.add_argument("--background-cls", type=int, default=0, help="num of backgorund classes for concat")
-parser.add_argument("--threshold-opt", action='store_true', help="set last class as bg")
+parser.add_argument("--threshold-opt", action='store_true', help="threshold opt refers last col as bg")
 args = parser.parse_args()
 args.backbone = 'resnet50'
 args.pretrained = True

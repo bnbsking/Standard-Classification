@@ -45,8 +45,9 @@ arguments:
     (for binary classification, you can set 1 and loss is BCE or set 2 and loss is CE)
 + resume: default='', load checkpoint path if specified
 + epochs: default=50
-+ save-results: default="./save_results/exp1"
-+ save-models: default="./save_models/exp1"
++ results: default="./results/exp1"
++ background-cls: default=0, num of bg-cls for concat last n to 1 column, metrics 
++ threshold-opt: threshold opt refers last col as bg (only do if has bg-cls and only in valid mode)
 
 # More
 + Coding style: as precise and comprehensive as possible
