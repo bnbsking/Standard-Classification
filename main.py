@@ -45,7 +45,7 @@ classes = max(2, args.output_dim) - args.background_cls + int(args.background_cl
 print(torch.cuda.is_available(), torch.backends.cudnn.is_available(), torch.cuda.get_device_name(0))
 device = torch.device('cuda')
 
-# prepare dataset
+# dataset
 if 1: # customize part
     train_c0 = sorted(glob.glob("./training_set/training_set/cats/*.jpg"))
     train_c1 = sorted(glob.glob("./training_set/training_set/dogs/*.jpg"))
@@ -62,17 +62,17 @@ if args.mode in ('train', 'valid'):
 if args.mode == 'infer':
     valid_loader = utils.get_loader(infer_path, [0]*len(infer_path), 'infer', args.batch_size)
 
-# prepare model
+# model
 model = utils.MyModel(args.backbone, args.pretrained, args.output_dim)
 if args.resume:
     model.load_state_dict(torch.load(args.resume))
 model.to(device)
 
-# optimizer
-optimizer, scheduler = utils.get_optimizer(model, args.optim_algo, args.lr, args.lr_scheduler)
-
 # loss
 loss_func = utils.get_loss(args.loss, args.loss_weight, 'mean' if args.mode=='train' else 'none')
+
+# optimizer
+optimizer, scheduler = utils.get_optimizer(model, args.optim_algo, args.lr, args.lr_scheduler)
 
 # training
 history = utils.History(args.results)

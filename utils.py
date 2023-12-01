@@ -30,7 +30,6 @@ class MyDataset(Dataset):
                 transforms.Resize((224,224)),
                 transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
             ])
-        self.mode = mode
 
     def __len__(self):
         return len(self.path_list)
@@ -72,6 +71,15 @@ class MyModel(torch.nn.Module):
         return x
     
 
+def get_loss(loss:str, loss_weight=None, reduction='mean'):
+    if loss=='BCE': # sigmoid of every element, same shape and type
+        return torch.nn.BCEWithLogitsLoss(weight=loss_weight, reduction=reduction)
+    elif loss=='CE': # softmax of each row, mean_batch-size( weighted_mean_output-dim( -(y==gt)log(p_gt) ) )
+        return torch.nn.CrossEntropyLoss(weight=loss_weight, reduction=reduction)
+    else:
+        raise "Unkown loss"
+
+
 def get_optimizer(model, optim_algo:str, lr:float, lr_scheduler:float, epochs=0):
     if optim_algo.lower()=='adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=3e-4)
@@ -82,15 +90,6 @@ def get_optimizer(model, optim_algo:str, lr:float, lr_scheduler:float, epochs=0)
         }
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_schedulerD[lr_scheduler])
         return optimizer, scheduler
-    
-
-def get_loss(loss:str, loss_weight=None, reduction='mean'): # reduction=self.reduction
-    if loss=='BCE': # sigmoid of every element, same shape and type
-        return torch.nn.BCEWithLogitsLoss(weight=loss_weight, reduction=reduction)
-    elif loss=='CE': # softmax of each row, mean_batch-size( weighted_mean_output-dim( -(y==gt)log(p_gt) ) )
-        return torch.nn.CrossEntropyLoss(weight=loss_weight, reduction=reduction)
-    else:
-        raise "Unkown loss"
 
 
 class History:
