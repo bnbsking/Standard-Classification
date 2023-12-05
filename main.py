@@ -21,25 +21,25 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--mode", type=str, default='train', choices=['train', 'valid', 'infer'])
 parser.add_argument("--batch-size", type=int, default=16)
 parser.add_argument("--output-dim", type=int, default=2, help="binary cls can be 1 or 2 affects metrics")
+parser.add_argument("--foreground-dim", type=int, default=2, help="num of backgorund classes for concat")
 parser.add_argument("--resume", type=str, default='', help="checkpoint path")
 parser.add_argument("--epochs", type=int, default=50)
 parser.add_argument("--results", type=str, default="./results/exp1", help="save results and models folder")
-parser.add_argument("--background-cls", type=int, default=0, help="num of backgorund classes for concat")
 parser.add_argument("--threshold-opt", action='store_true', help="threshold opt refers last col as bg")
 args = parser.parse_args()
 args.backbone = 'resnet50'
 args.pretrained = True
-args.optim_algo = 'adam'
-args.lr_scheduler = 'none'
-args.lr = 0.0003
+args.optim_algo = 'adamw'
 args.loss = 'CE' if args.output_dim>1 else 'BCE'
-args.loss_weight = None
 print(args)
 
 # global setting
 os.makedirs(args.results, exist_ok=True)
 json.dump(vars(args), open(f"{args.results}/args_{args.mode}.json", "w"))
-classes = max(2, args.output_dim) - args.background_cls + int(args.background_cls>0)
+if args.output_dim==1:
+    classes = 2
+else:
+    classes = args.foreground_dim + int(args.output_dim!=args.foreground_dim)
 
 # check GPU
 print(torch.cuda.is_available(), torch.backends.cudnn.is_available(), torch.cuda.get_device_name(0))
@@ -62,30 +62,40 @@ if args.mode in ('train', 'valid'):
 if args.mode == 'infer':
     valid_loader = utils.get_loader(infer_path, [0]*len(infer_path), 'infer', args.batch_size)
 
+# loss weights
+if args.mode == 'train':
+    _, cnts = np.unique(train_loader.dataset.label_list, return_counts=True)
+    loss_weight = torch.tensor(1/cnts/(1/cnts).sum(), dtype=torch.float32)
+else:
+    loss_weight = None
+print(f"loss_weight={loss_weight}")
+
 # model
 model = utils.MyModel(args.backbone, args.pretrained, args.output_dim)
 if args.resume:
     model.load_state_dict(torch.load(args.resume))
+else:
+    assert args.mode=='train', f"{args.mode} needs pretrained weights"
 model.to(device)
 
 # loss
 loss_func = utils.get_loss(args.loss, args.loss_weight, 'mean' if args.mode=='train' else 'none')
 
 # optimizer
-optimizer, scheduler = utils.get_optimizer(model, args.optim_algo, args.lr, args.lr_scheduler)
+optimizer, scheduler = utils.get_optimizer(model, args.optim_algo)
 
 # training
 history = utils.History(args.results)
 if args.mode=='train':
     train_label = train_loader.dataset.label_list
 if args.mode in ('valid', 'infer'):
-    model.eval()
     loss_all = []
 valid_label = valid_loader.dataset.label_list
 for ep in range(args.epochs):
     print(f"Epoch: {ep+1}/{args.epochs}") if args.mode=='train' else None
     
     # training loop
+    model.train()
     if args.mode=='train':
         pred_probs_all = []
         history.train_loss.append(0)
@@ -114,9 +124,9 @@ for ep in range(args.epochs):
         # pred numpy
         scheduler.step()
         pred_probs_all = np.array(pred_probs_all)
-        if args.background_cls:
-            fg = pred_probs_all[:,:classes-1]
-            bg = pred_probs_all[:,classes-1:].sum(axis=1, keepdims=True)
+        if pred_probs_all.shape[-1]>args.foreground_dim:
+            fg = pred_probs_all[:,:args.foreground_dim]
+            bg = pred_probs_all[:,args.foreground_dim:].sum(axis=1, keepdims=True)
             pred_probs_all = np.concatenate((fg, bg), axis=1)
         
         # history f1 & aps & map
@@ -127,6 +137,7 @@ for ep in range(args.epochs):
         print("\n", history, "\n", metrics.get_cls_report())
 
     # validation loop
+    model.eval()
     with torch.no_grad():
         pred_probs_all = []
         history.valid_loss.append(0)
@@ -154,13 +165,13 @@ for ep in range(args.epochs):
         
         # pred numpy
         pred_probs_all = np.array(pred_probs_all)
-        if args.background_cls:
-            fg = pred_probs_all[:,:classes-1]
-            bg = pred_probs_all[:,classes-1:].sum(axis=1, keepdims=True)
+        if pred_probs_all.shape[-1]>args.foreground_dim:
+            fg = pred_probs_all[:,:args.foreground_dim]
+            bg = pred_probs_all[:,args.foreground_dim:].sum(axis=1, keepdims=True)
             pred_probs_all = np.concatenate((fg, bg), axis=1)
 
         # history f1 & aps & map
-        threshold_optimization = args.mode=='valid' and args.background_cls>0 and args.threshold_opt
+        threshold_optimization = args.mode=='valid' and pred_probs_all.shape[-1]>args.foreground_dim and args.threshold_opt
         metrics = utils.ComputeMetrics(valid_label, pred_probs_all, threshold_optimization)
         history.valid_f1.append(metrics.get_f1())
         history.valid_aps.append(metrics.get_aps())
@@ -174,6 +185,9 @@ for ep in range(args.epochs):
             history.save()
         
         elif args.mode=='valid':
+            print("aps=", history.valid_aps[-1])
+            history.save('valid')
+
             # auc & sensitivity
             aucs, specificities = metrics.get_aucs_specificities()
             print(f"aucs={aucs}, auc_mean={sum(aucs)/classes}")
@@ -209,16 +223,21 @@ if args.mode=='train':
         [['train','valid'] for i in range(3)], os.path.join(args.results, "curve_loss_map.jpg") )
 
 elif args.mode=='valid':
-    # first plot: p/r/f curve per class # secod_plot: p-r curve per class
-    prf_subplots, pr_subplots_x, pr_subplots_y = utils.get_prf_pr_data(valid_label, pred_probs_all)
-    utils.row_plot_1d(prf_subplots, ['threshold']*classes, ['']*classes, [['precision','recall'] for _ in range(classes)], \
-        os.path.join(args.results, "curve_prt.jpg") )
-    utils.row_plot_2d(pr_subplots_x, pr_subplots_y, ['recall']*classes, ['precision']*classes, ['']*classes, \
+    precision_list, recall_list, f1_list, threshold_list = utils.get_prf_pr_data(valid_label, pred_probs_all) # p,r,f,t | cls
+    # first plot: p/r/f curve per class
+    prf_subplots_x = [ [threshold_list[i]]*3 for i in range(classes) ]
+    prf_subplots_y = [ [precision_list[i], recall_list[i], f1_list[i]] for i in range(classes) ]    
+    utils.row_plot_2d(prf_subplots_x, prf_subplots_y, ['threshold']*classes, ['']*classes, [['precision','recall','f1'] for _ in range(classes)], \
+        os.path.join(args.results, "curve_prf.jpg") )
+    # second_plot: p-r curve per class
+    pr_subplots_x = [ [recall_list[i]] for i in range(classes) ]
+    pr_subplots_y = [ [precision_list[i]] for i in range(classes) ]
+    utils.row_plot_2d(pr_subplots_x, pr_subplots_y, ['recall']*classes, ['precision']*classes, [['.'] for _ in range(classes)], \
         os.path.join(args.results, "curve_pr.jpg") )
 
     # third plot: roc curve
     roc_subplots_x, roc_subplots_y = utils.get_roc_data(valid_label, pred_probs_all)
-    utils.row_plot_2d(roc_subplots_x, roc_subplots_y, ['fpr']*classes, ['tpr']*classes, ['']*classes, \
+    utils.row_plot_2d(roc_subplots_x, roc_subplots_y, ['fpr']*classes, ['tpr']*classes, [['.'] for _ in range(classes)], \
         os.path.join(args.results, "curve_roc.jpg") )
 
 print("successfully finished :D")

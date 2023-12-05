@@ -80,8 +80,9 @@ def get_loss(loss:str, loss_weight=None, reduction='mean'):
         raise "Unkown loss"
 
 
-def get_optimizer(model, optim_algo:str, lr:float, lr_scheduler:float, epochs=0):
+def get_optimizer(model, optim_algo:str):
     if optim_algo.lower()=='adam':
+        epochs, lr_scheduler = 500, 'linear'
         optimizer = torch.optim.Adam(model.parameters(), lr=3e-4)
         lr_schedulerD = {\
             "none": lambda x:x,
@@ -89,6 +90,10 @@ def get_optimizer(model, optim_algo:str, lr:float, lr_scheduler:float, epochs=0)
             "sine": lambda x: 1 - 0.9 * math.sin(0.5*math.pi*x/epochs)
         }
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_schedulerD[lr_scheduler])
+        return optimizer, scheduler
+    elif optim_algo.lower()=='adamw':
+        optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5, weight_decay=2e-5)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
         return optimizer, scheduler
 
 
@@ -104,9 +109,9 @@ class History:
             D[key] = round(getattr(self,key)[-1],4) if len(getattr(self,key)) else np.nan
         return str(D)
         
-    def save(self):
+    def save(self, mode='train'):
         results = {key:getattr(self,key) for key in dir(self) if 'train_' in key or 'valid_' in key}
-        json.dump(results, open(os.path.join(self.save_results, 'history.json'),'w'))
+        json.dump(results, open(os.path.join(self.save_results, f'history_{mode}.json'),'w'))
 
 
 class ComputeMetrics:
@@ -170,8 +175,8 @@ class ComputeMetrics:
             for j in range(self.classes):
                 if i==j: continue
                 grid_path = os.path.join(output_path, 'confusion', f"gt_{i}_pd_{j}")
-                os.makedirs(grid_path, exist_ok=True)
                 for _, path in sorted(confusion[i][j])[:top_n]:
+                    os.makedirs(grid_path, exist_ok=True)
                     shutil.copy(path, grid_path)
 
     def export_lowest_conf(self, path_list, output_path, top_n=5):
@@ -183,19 +188,18 @@ class ComputeMetrics:
 
 
 def get_prf_pr_data(label, pred_probs):
-    prf_subplots = [] # 3-d list # A[class_i][p/r/f][val]
-    pr_subplots_x, pr_subplots_y = [], [] # 3-d list # A[class_i][r][val], A[class_i][p][val] 
+    precision_list, recall_list, f1_list, threshold_list = [], [], [], [] # 2-d list # A[class_i][val]
     for i in range(pred_probs.shape[-1]):
         precision, recall, thresholds = precision_recall_curve(label==i, pred_probs[:,i])
         refine_precision = [precision[0]]
-        for _ in range(1,len(precision)):
-            refine_precision.append( max(refine_precision[-1],precision[i]) )
-        f1 = [ 2*p*r/(p+r) if p+r else 0 for p, r in zip(refine_precision, recall) ]
+        for j in range(1,len(precision)):
+            refine_precision.append( max(refine_precision[-1],precision[j]) )
         # collect data
-        prf_subplots.append([refine_precision, recall, f1])
-        pr_subplots_x.append([recall])
-        pr_subplots_y.append([refine_precision])
-    return prf_subplots, pr_subplots_x, pr_subplots_y
+        precision_list.append(refine_precision)
+        recall_list.append(recall)
+        f1_list.append([ 2*p*r/(p+r) if p+r else 0 for p, r in zip(refine_precision, recall) ])
+        threshold_list.append( np.concatenate((thresholds, np.array([1.]))) )
+    return precision_list, recall_list, f1_list, threshold_list
 
 
 def get_roc_data(label, pred_probs):
@@ -210,11 +214,11 @@ def get_roc_data(label, pred_probs):
 def row_plot_1d(data, xlabel_list, ylabel_list, legend_list, save_path):
     """
     data: 3-d list
-        1st-d subplot e.g. class0, class1, ..., etc.
-        2nd-d curves e.g. precision, recall, f1, etc.
-    xlabel_list: list[str] e.g. ['threshold']*classes
-    ylabel_list: list[str] e.g. ['score']*classes
-    legend_list: list[list[str]] e.g. [['precision','recall'], ...]
+        1st-d subplot e.g. loss, f1, map
+        2nd-d curves e.g. train, valid
+    xlabel_list: list[str] e.g. ['epoch']*3
+    ylabel_list: list[str] e.g. ['loss', 'f1', 'map']
+    legend_list: list[list[str]] e.g. [['train','valid'] for _ in range(3)]
     save_path: str e.g. *.jpg
     """
     n = len(data)
@@ -239,10 +243,12 @@ def row_plot_2d(data_x, data_y, xlabel_list, ylabel_list, legend_list, save_path
     zip_gen = zip(data_x, data_y, xlabel_list, ylabel_list, legend_list)
     for i, (curves_x, curves_y, xlabel, ylabel, legend) in enumerate(zip_gen):
         plt.subplot(1,n,1+i)
-        for curve_x, curve_y in zip(curves_x, curves_y):
-            plt.plot(curve_x, curve_y)
+        for curve_x, curve_y, label in zip(curves_x, curves_y, legend):
+            plt.plot(curve_x, curve_y, label=label)
             plt.scatter(curve_x, curve_y)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
-        plt.legend(legend) if legend is not None else None
+        plt.xlim(-0.1,1.1)
+        plt.ylim(-0.1,1.1)
+        plt.legend()
     plt.savefig(save_path)
