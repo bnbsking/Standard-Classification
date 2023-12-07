@@ -34,6 +34,7 @@ args.loss = 'CE' if args.output_dim>1 else 'BCE'
 print(args)
 
 # global setting
+torch.manual_seed(7)
 os.makedirs(args.results, exist_ok=True)
 json.dump(vars(args), open(f"{args.results}/args_{args.mode}.json", "w"))
 if args.output_dim==1:
@@ -180,7 +181,7 @@ for ep in range(args.epochs):
 
         if args.mode=='train':
             # checkpoint
-            if ep==0 or history.valid_map[-1]>history.valid_map[-2]:
+            if ep==0 or history.valid_map[-1]>=max(history.valid_map):
                 torch.save(model.state_dict(), os.path.join(args.results, 'model.pt'))
             history.save()
         
