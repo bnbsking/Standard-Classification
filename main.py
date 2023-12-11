@@ -41,8 +41,6 @@ if args.output_dim==1:
     classes = 2
 else:
     classes = args.foreground_dim + int(args.output_dim!=args.foreground_dim)
-
-# check GPU
 print(torch.cuda.is_available(), torch.backends.cudnn.is_available(), torch.cuda.get_device_name(0))
 device = torch.device('cuda')
 
@@ -58,16 +56,14 @@ if 1: # customize part
     valid_label = [0]*len(valid_c0) + [1]*len(valid_c1)
 if args.mode == 'train':
     train_loader = utils.get_loader(train_path, train_label, 'train', args.batch_size)
-if args.mode in ('train', 'valid'):
     valid_loader = utils.get_loader(valid_path, valid_label, 'valid', args.batch_size)
-if args.mode == 'infer':
-    valid_loader = utils.get_loader(infer_path, [0]*len(infer_path), 'infer', args.batch_size)
-
-# loss weights
-if args.mode == 'train':
     _, cnts = np.unique(train_loader.dataset.label_list, return_counts=True)
     loss_weight = torch.tensor(1/cnts/(1/cnts).sum(), dtype=torch.float32)
-else:
+elif args.mode == 'valid':
+    valid_loader = utils.get_loader(valid_path, valid_label, 'valid', args.batch_size)
+    loss_weight = None
+else: # 'infer'
+    valid_loader = utils.get_loader(infer_path, [0]*len(infer_path), 'infer', args.batch_size)
     loss_weight = None
 print(f"loss_weight={loss_weight}")
 

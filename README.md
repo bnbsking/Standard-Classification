@@ -49,12 +49,11 @@ The code will be executed in the following steps
 	+ check GPU and set device
 + Dataset
 	+ Customized part for preparing:
-		+ train_path: list[str]. path of 1 training data
-		+ valid_path: list[str]. path of 1 validation data
+		+ train_path: list[str]. path of each training data
+		+ valid_path: list[str]. path of each validation data
 		+ train_label: list[int]. class index of each data in train_path
 		+ valid_label: list[int]. class index of each data in valid_path
 	+ generate loaders according to the above format
-+ Setting weights for loss function
 	+ [Train] Count counts of each class and get weights from harmonic mean
 + Model
 	+ Get model (Backbone + Linear head).
@@ -79,7 +78,7 @@ The code will be executed in the following steps
 		+ [Train] save history and save checkpoint if reach best mAP
 		+ [Valid] save history and compute AUC & specificity & confusion matrix with exporting top-N losses
 		+ [Infer] export top-N unconfidence
-+ Save prediction results
++ Saving prediction results into csv
 + Plotting
 	+ [Train] History of loss, f1, mAP of train and valid
 	+ [Valid] PRF-T curve, P-R curve, ROC curve
