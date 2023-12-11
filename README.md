@@ -1,11 +1,14 @@
+# Preface
+This is a template repository for **N-class classification problem** based on Pytorch. The example dataset is from [here](https://www.kaggle.com/datasets/tongpython/cat-and-dog).
+
 # Prerequisites
 ### Software
-+ Install python 3.9.12
++ Install python 3.9.12. [reference](https://docs.conda.io/projects/miniconda/en/latest/)
 + Install packages
 ```
 pip install -r requirements.txt 
 ```
-+ Install pytorch
++ Install pytorch alongside gpu
 ```
 pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
 ```
@@ -29,31 +32,62 @@ pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f ht
         + *.pt # trained model weights
         + history.json # training history
 
-Please download dataset from [here](https://www.kaggle.com/datasets/tongpython/cat-and-dog) 
-
 # Quick start
-### train
+### Train / Valid / Infer  
 ```
 python main.py [--options]
 ```
-arguments:
-+ mode: 'train', 'valid' or 'infer'
-+ batch-size: default=16
-+ output-dim: default=2
-    (for binary classification, you can set 1 and loss is BCE or set 2 and loss is CE)
-+ resume: default='', load checkpoint path if specified
-+ epochs: default=50
-+ results: default="./results/exp1"
-+ background-cls: default=0, num of bg-cls for concat last n to 1 column, metrics 
-+ threshold-opt: threshold opt refers last col as bg (only do if has bg-cls and only in valid mode)
++ \--mode: be ''train" or "valid" or "infer"
++ see more in main.py
 
-# More
-+ Coding style: as precise and comprehensive as possible
-+ Improvement than usual:
-    + learning rate scheduler which is widely use in SOTA CV
-    + more complete metrics
-    + for improve image quality
-        + output worst predicted images based on loss while validation
-        + output worst predicted images based on max confidence while inference
-+ Output prediction results for further post-analysis if needed.
+# Pipeline
+The code will be executed in the following steps
++ Global setting
+	+ set random seed
+	+ make result folder
+	+ read args then save at the folder
+	+ check GPU and set device
++ Dataset
+	+ Customized part for preparing:
+		+ train_path: list[str]. path of 1 training data
+		+ valid_path: list[str]. path of 1 validation data
+		+ train_label: list[int]. class index of each data in train_path
+		+ valid_label: list[int]. class index of each data in valid_path
+	+ generate loaders according to the above format
++ Setting weights for loss function
+	+ [Train] Count counts of each class and get weights from harmonic mean
++ Model
+	+ Get model (Backbone + Linear head).
+	+ Resume checkpoint
+	+ To GPU
++ Loss function
+	+ [Train] Loss reduced by mean in a batch
+	+ [Valid/Infer] Loss not reduced
++ Optimizer
+	+ get optmizer and lr_scheduler
++ Core
+	+ [Train] grad loop
+		+ standard
+		+ collect all prediction as shape (N, classes)
+		+ compute F1, APs, mAP, cls_report
+	+ no-grad loop
+		+ standard
+		+ [Valid/Infer] collect all loss as shape (N,) 
+		+ collect all prediction as shape (N, classes)
+		+ compute F1, APs, mAP, cls_report
+	+ more
+		+ [Train] save history and save checkpoint if reach best mAP
+		+ [Valid] save history and compute AUC & specificity & confusion matrix with exporting top-N losses
+		+ [Infer] export top-N unconfidence
++ Save prediction results
++ Plotting
+	+ [Train] History of loss, f1, mAP of train and valid
+	+ [Valid] PRF-T curve, P-R curve, ROC curve
+
+# Features
++ As precise and comprehensive as possible
++ SOTA backbone, lr scheduler
++ Complete metrics across industry and medical 
++ Valid mode: Export worst images from confusion matrix
++ Infer mode: Export the most unconfident images
 + Feel free to contact me if you have any question. Thanks.
