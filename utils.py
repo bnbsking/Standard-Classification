@@ -73,28 +73,26 @@ class MyModel(torch.nn.Module):
 
 def get_loss(loss:str, loss_weight=None, reduction='mean'):
     if loss=='BCE': # sigmoid of every element, same shape and type
-        return torch.nn.BCEWithLogitsLoss(weight=loss_weight, reduction=reduction)
+        return torch.nn.BCEWithLogitsLoss(pos_weight=loss_weight, reduction=reduction)
     elif loss=='CE': # softmax of each row, mean_batch-size( weighted_mean_output-dim( -(y==gt)log(p_gt) ) )
         return torch.nn.CrossEntropyLoss(weight=loss_weight, reduction=reduction)
     else:
         raise "Unkown loss"
 
 
-def get_optimizer(model, optim_algo:str):
+def get_optimizer(model, optim_algo:str, lr:float, epochs:int, lr_scheduler='linear'):
+    lr_schedulerD = {\
+        "none": lambda x:x,
+        "linear": lambda x: (1 - x / (epochs - 1)) * (1.0 - 0.1) + 0.1,
+        "sine": lambda x: 1 - 0.9 * math.sin(0.5*math.pi*x/epochs)
+    }
     if optim_algo.lower()=='adam':
-        epochs, lr_scheduler = 500, 'linear'
-        optimizer = torch.optim.Adam(model.parameters(), lr=3e-4)
-        lr_schedulerD = {\
-            "none": lambda x:x,
-            "linear": lambda x: (1 - x / (epochs - 1)) * (1.0 - 0.1) + 0.1,
-            "sine": lambda x: 1 - 0.9 * math.sin(0.5*math.pi*x/epochs)
-        }
+        lr_scheduler = 'linear'
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_schedulerD[lr_scheduler])
         return optimizer, scheduler
-    elif optim_algo.lower()=='adamw':
-        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=2e-5)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
-        return optimizer, scheduler
+    else:
+        raise NotImplementedError
 
 
 class History:
@@ -121,27 +119,25 @@ class ComputeMetrics:
     # for single score -> concat 1-p and 1-p first
     # for unbounded score -> normalize first
     """
-    def __init__(self, label, pred_probs, threshold_optimization=False):
+    def __init__(self, label, pred_probs, threshold_opt_strategy=None):
         self.label = label
         self.pred_probs = pred_probs
         self.classes = pred_probs.shape[-1]
-        if not threshold_optimization:
+        if not threshold_opt_strategy:
             self.pred_cls = pred_probs.argmax(axis=1)
             print(f"\ndefault_threshold={1/self.classes:.4f}")
         else:
-            best_threshold = self.threshold_optimization()
+            best_threshold = self.threshold_optimization(threshold_opt_strategy)
             print(f"\nbest_threshold={best_threshold:.4f}")
-            self.pred_cls = np.array([ row[:-1].argmax() if row.max()>=best_threshold else self.classes-1 \
-                for row in self.pred_probs ])
+            self.pred_cls = (pred_probs[:,1]>=best_threshold).astype(np.int8)
 
     def threshold_optimization(self, strategy='f1'):
-        best_threshold_cls = []
-        for i in range(self.classes-1):
-            precision, recall, thresholds = precision_recall_curve(self.label==i, self.pred_probs[:,i])
-            if strategy=='f1':
-                f1 = np.array([ 2*p*r/(p+r) if p+r else 0 for p,r in zip(precision,recall) ])
-                best_threshold_cls.append( thresholds[f1.argmax()] )
-        return sum(best_threshold_cls)/(self.classes-1)
+        precision, recall, thresholds = precision_recall_curve(self.label, self.pred_probs[:,1])
+        if strategy=='f1':
+            f1 = np.array([ 2*p*r/(p+r) if p+r else 0 for p,r in zip(precision,recall) ])
+            return thresholds[f1.argmax()]
+        else:
+            raise NotImplementedError
 
     def get_f1(self):
         return f1_score(self.label, self.pred_cls, average='macro')

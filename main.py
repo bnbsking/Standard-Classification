@@ -20,45 +20,45 @@ import utils
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", type=str, default='train', choices=['train', 'valid', 'infer'])
 parser.add_argument("--batch-size", type=int, default=16)
-parser.add_argument("--output-dim", type=int, default=2, help="binary cls can be 1 or 2 affects metrics")
-parser.add_argument("--foreground-dim", type=int, default=2, help="num of backgorund classes for concat")
-parser.add_argument("--resume", type=str, default='', help="checkpoint path")
-parser.add_argument("--epochs", type=int, default=50)
-parser.add_argument("--results", type=str, default="./results/exp1", help="save results and models folder")
-parser.add_argument("--threshold-opt", action='store_true', help="threshold opt refers last col as bg")
+parser.add_argument("--output-dim", type=int, default=2, help="Binary cls can be 1 or 2")
+parser.add_argument("--resume", type=str, default='', help="Checkpoint path")
+parser.add_argument("--epochs", type=int, default=20)
+parser.add_argument("--results", type=str, default="./results/exp1", help="Folder saves results and models")
+parser.add_argument("--threshold-opt", type=str, default='', choices=['', 'f1'], help="Works when mode=valid and output_dim=1 only")
 args = parser.parse_args()
 args.backbone = 'resnet50'
 args.pretrained = True
-args.optim_algo = 'adamw'
-args.loss = 'CE' if args.output_dim>1 else 'BCE'
+args.optim_algo = 'adam'
+args.lr = 1e-4
+args.lr_scheduler = 'linear'
 print(args)
 
 # global setting
+classes = max(args.output_dim, 2)
+loss_name = 'CE' if args.output_dim>1 else 'BCE'
 torch.manual_seed(7)
 os.makedirs(args.results, exist_ok=True)
 json.dump(vars(args), open(f"{args.results}/args_{args.mode}.json", "w"))
-if args.output_dim==1:
-    classes = 2
-else:
-    classes = args.foreground_dim + int(args.output_dim!=args.foreground_dim)
 print(torch.cuda.is_available(), torch.backends.cudnn.is_available(), torch.cuda.get_device_name(0))
 device = torch.device('cuda')
 
 # dataset
 if 1: # customize part
-    train_c0 = sorted(glob.glob("./training_set/training_set/cats/*.jpg"))
-    train_c1 = sorted(glob.glob("./training_set/training_set/dogs/*.jpg"))
-    train_path  = train_c0 + train_c1
-    train_label = [0]*len(train_c0) + [1]*len(train_c1)
-    valid_c0 = sorted(glob.glob("./test_set/test_set/cats/*.jpg"))
-    valid_c1 = sorted(glob.glob("./test_set/test_set/dogs/*.jpg"))
-    valid_path = infer_path = valid_c0 + valid_c1
-    valid_label = [0]*len(valid_c0) + [1]*len(valid_c1)
+    train_c0 = sorted(glob.glob("./_data/catdog_simple/training_set/training_set/cats/*.jpg"))
+    train_c1 = sorted(glob.glob("./_data/catdog_simple/training_set/training_set/dogs/*.jpg"))
+    #train_c2 = sorted(glob.glob("./_data/catdog_simple/training_set/training_set/noise/*.jpg"))
+    train_path  = train_c0 + train_c1 #+ train_c2
+    train_label = [0]*len(train_c0) + [1]*len(train_c1) #+ [2]*len(train_c2)
+    valid_c0 = sorted(glob.glob("./_data/catdog_simple/test_set/test_set/cats/*.jpg"))
+    valid_c1 = sorted(glob.glob("./_data/catdog_simple/test_set/test_set/dogs/*.jpg"))
+    #valid_c2 = sorted(glob.glob("./_data/catdog_simple/test_set/test_set/noise/*.jpg"))
+    valid_path = infer_path = valid_c0 + valid_c1 #+ valid_c2
+    valid_label = [0]*len(valid_c0) + [1]*len(valid_c1) #+ [2]*len(valid_c2)
 if args.mode == 'train':
     train_loader = utils.get_loader(train_path, train_label, 'train', args.batch_size)
     valid_loader = utils.get_loader(valid_path, valid_label, 'valid', args.batch_size)
-    _, cnts = np.unique(train_loader.dataset.label_list, return_counts=True)
-    loss_weight = torch.tensor(1/cnts/(1/cnts).sum(), dtype=torch.float32)
+    _, cnts = np.unique(train_loader.dataset.label_list, return_counts=True) # category, counts
+    loss_weight = torch.tensor([cnts[0]/cnts[1]]) if loss_name=='BCE' else torch.tensor(1/cnts/(1/cnts).sum(), dtype=torch.float32)
 elif args.mode == 'valid':
     valid_loader = utils.get_loader(valid_path, valid_label, 'valid', args.batch_size)
     loss_weight = None
@@ -76,10 +76,11 @@ else:
 model.to(device)
 
 # loss
-loss_func = utils.get_loss(args.loss, args.loss_weight, 'mean' if args.mode=='train' else 'none')
+loss_func = utils.get_loss(loss_name, loss_weight, 'mean' if args.mode=='train' else 'none')
+loss_func.to(device)
 
 # optimizer
-optimizer, scheduler = utils.get_optimizer(model, args.optim_algo)
+optimizer, scheduler = utils.get_optimizer(model, args.optim_algo, args.lr, args.epochs, args.lr_scheduler)
 
 # training
 history = utils.History(args.results)
@@ -101,7 +102,7 @@ for ep in range(args.epochs):
             
             # basic
             x, y = x.to(device), y.to(device)
-            y = y.reshape(-1) if args.loss=='CE' else y.type(torch.float32)
+            y = y.reshape(-1) if loss_name=='CE' else y.type(torch.float32)
             optimizer.zero_grad()
             pred = model(x)
             loss = loss_func(pred, y) # CE:(B,2),(B,)int; BCE:(B,1),(B,1)float
@@ -112,7 +113,7 @@ for ep in range(args.epochs):
             history.train_loss[-1] += loss.item() / len(train_label)
             
             # pred collect
-            if args.loss=='CE':
+            if loss_name=='CE':
                 pred_probs = torch.nn.functional.softmax(pred, dim=1)
             else:
                 pred_probs = torch.cat((1-torch.sigmoid(pred), torch.sigmoid(pred)), axis=1)
@@ -121,10 +122,6 @@ for ep in range(args.epochs):
         # pred numpy
         scheduler.step()
         pred_probs_all = np.array(pred_probs_all)
-        if pred_probs_all.shape[-1]>args.foreground_dim:
-            fg = pred_probs_all[:,:args.foreground_dim]
-            bg = pred_probs_all[:,args.foreground_dim:].sum(axis=1, keepdims=True)
-            pred_probs_all = np.concatenate((fg, bg), axis=1)
         
         # history f1 & aps & map
         metrics = utils.ComputeMetrics(train_label, pred_probs_all)
@@ -143,7 +140,7 @@ for ep in range(args.epochs):
             
             # basic
             x, y = x.to(device), y.to(device)
-            y = y.reshape(-1) if args.loss=='CE' else y.type(torch.float32)
+            y = y.reshape(-1) if loss_name=='CE' else y.type(torch.float32)
             pred = model(x)
             loss = loss_func(pred, y)
 
@@ -154,7 +151,7 @@ for ep in range(args.epochs):
             history.valid_loss[-1] += loss.item() / len(valid_loader.dataset)
             
             # pred collect
-            if args.loss=='CE':
+            if loss_name=='CE':
                 pred_probs = torch.nn.functional.softmax(pred, dim=1)
             else:
                 pred_probs = torch.cat((1-torch.sigmoid(pred), torch.sigmoid(pred)), axis=1)
@@ -162,14 +159,9 @@ for ep in range(args.epochs):
         
         # pred numpy
         pred_probs_all = np.array(pred_probs_all)
-        if pred_probs_all.shape[-1]>args.foreground_dim:
-            fg = pred_probs_all[:,:args.foreground_dim]
-            bg = pred_probs_all[:,args.foreground_dim:].sum(axis=1, keepdims=True)
-            pred_probs_all = np.concatenate((fg, bg), axis=1)
 
         # history f1 & aps & map
-        threshold_optimization = args.mode=='valid' and pred_probs_all.shape[-1]>args.foreground_dim and args.threshold_opt
-        metrics = utils.ComputeMetrics(valid_label, pred_probs_all, threshold_optimization)
+        metrics = utils.ComputeMetrics(valid_label, pred_probs_all, args.threshold_opt)
         history.valid_f1.append(metrics.get_f1())
         history.valid_aps.append(metrics.get_aps())
         history.valid_map.append(sum(history.valid_aps[-1])/classes)
@@ -179,10 +171,14 @@ for ep in range(args.epochs):
             # checkpoint
             if ep==0 or history.valid_map[-1]>=max(history.valid_map):
                 torch.save(model.state_dict(), os.path.join(args.results, 'model.pt'))
+            
+            # show ap
+            print("valid_aps=", history.valid_aps[-1], "\n"+"-"*50)
             history.save()
         
         elif args.mode=='valid':
-            print("aps=", history.valid_aps[-1])
+            # show ap
+            print("valid_aps=", history.valid_aps[-1])
             history.save('valid')
 
             # auc & sensitivity

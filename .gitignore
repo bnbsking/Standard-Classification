@@ -1,5 +1,4 @@
 __pycache__/*
 archive.zip
-training_set/*
-test_set/*
+_data/*
 results/*
