@@ -101,11 +101,11 @@ The code will be executed in the following steps:
 + Feel free to contact me if you have any question. Thanks.
 
 # Results
-### Train
+### mode=rain
 ##### plots in all class average
 ![a](results/exp0/curve_loss_f1_map.jpg)
 
-### Valid
+### mode=valid
 ##### plots for each class (left:class-0, right:class-1)
 ![a](results/exp0/curve_pr.jpg)
 ![a](results/exp0/curve_prf.jpg)
@@ -139,10 +139,13 @@ The code will be executed in the following steps:
 
 ##### visualization of false classified images
 ![a](results/exp0/confusion/gt_0_pd_1/cat.4008.jpg)
-The difficulty might be the cage.
+
+cat.4008.jpg. The difficulty might be the cage.
 p(cats)=0.807, p(dogs)=0.193, but the best threshold = 0.10
 
-### Infer
+### mode=infer
 ##### visualization of the most unconfident data
 ![a](results/exp0/worst_imgs/cat.4087.jpg)
-The difficulty might be the vague.
+
+cat.4087.jpg. The difficulty might be the vague.
+p(cats)=0.415, p(dogs)=0.585
