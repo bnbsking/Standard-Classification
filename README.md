@@ -16,7 +16,7 @@ pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f ht
 + ResNet50 (25M parameters), GPU momory >= 4GB is guaranteed work
 
 # File structure
-+ _data/catdog_simple/ # dataset
++ data/catdog_simple/ # dataset
 	+ training_set/training_set/
     	+ cats/*.jpg
     	+ dogs/*.jpg

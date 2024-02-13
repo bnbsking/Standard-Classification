@@ -1,7 +1,6 @@
 # ignore
 __pycache__/*
-archive.zip
-_data/*
+data/*
 results/*
 
 # but except

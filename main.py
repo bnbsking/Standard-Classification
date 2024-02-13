@@ -44,14 +44,14 @@ device = torch.device('cuda')
 
 # dataset
 if 1: # customized part
-    train_c0 = sorted(glob.glob("./_data/catdog_simple/training_set/training_set/cats/*.jpg"))
-    train_c1 = sorted(glob.glob("./_data/catdog_simple/training_set/training_set/dogs/*.jpg"))
-    #train_c2 = sorted(glob.glob("./_data/catdog_simple/training_set/training_set/noise/*.jpg"))
+    train_c0 = sorted(glob.glob("./data/catdog_simple/training_set/training_set/cats/*.jpg"))
+    train_c1 = sorted(glob.glob("./data/catdog_simple/training_set/training_set/dogs/*.jpg"))
+    #train_c2 = sorted(glob.glob("./data/catdog_simple/training_set/training_set/noise/*.jpg"))
     train_path  = train_c0 + train_c1 #+ train_c2
     train_label = [0]*len(train_c0) + [1]*len(train_c1) #+ [2]*len(train_c2)
-    valid_c0 = sorted(glob.glob("./_data/catdog_simple/test_set/test_set/cats/*.jpg"))
-    valid_c1 = sorted(glob.glob("./_data/catdog_simple/test_set/test_set/dogs/*.jpg"))
-    #valid_c2 = sorted(glob.glob("./_data/catdog_simple/test_set/test_set/noise/*.jpg"))
+    valid_c0 = sorted(glob.glob("./data/catdog_simple/test_set/test_set/cats/*.jpg"))
+    valid_c1 = sorted(glob.glob("./data/catdog_simple/test_set/test_set/dogs/*.jpg"))
+    #valid_c2 = sorted(glob.glob("./data/catdog_simple/test_set/test_set/noise/*.jpg"))
     valid_path = infer_path = valid_c0 + valid_c1 #+ valid_c2
     valid_label = [0]*len(valid_c0) + [1]*len(valid_c1) #+ [2]*len(valid_c2)
 if args.mode == 'train':
