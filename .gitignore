@@ -1,4 +1,9 @@
+# ignore
 __pycache__/*
 archive.zip
 _data/*
 results/*
+
+# but except
+!results/exp0
+results/exp0/model.pt

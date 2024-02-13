@@ -43,7 +43,7 @@ print(torch.cuda.is_available(), torch.backends.cudnn.is_available(), torch.cuda
 device = torch.device('cuda')
 
 # dataset
-if 1: # customize part
+if 1: # customized part
     train_c0 = sorted(glob.glob("./_data/catdog_simple/training_set/training_set/cats/*.jpg"))
     train_c1 = sorted(glob.glob("./_data/catdog_simple/training_set/training_set/dogs/*.jpg"))
     #train_c2 = sorted(glob.glob("./_data/catdog_simple/training_set/training_set/noise/*.jpg"))
@@ -213,7 +213,7 @@ if args.mode=='train':
     data_sub2 = [history.train_f1, history.valid_f1]
     data_sub3 = [history.train_map, history.valid_map]
     utils.row_plot_1d( [data_sub1, data_sub2, data_sub3], ['epoch']*3, ['loss','f1','mAP'], \
-        [['train','valid'] for i in range(3)], os.path.join(args.results, "curve_loss_map.jpg") )
+        [['train','valid'] for i in range(3)], os.path.join(args.results, "curve_loss_f1_map.jpg") )
 
 elif args.mode=='valid':
     precision_list, recall_list, f1_list, threshold_list = utils.get_prf_pr_data(valid_label, pred_probs_all) # p,r,f,t | cls
