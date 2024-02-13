@@ -102,11 +102,11 @@ The code will be executed in the following steps:
 
 # Results
 ### Train
-##### plot
+##### plots in all class average
 ![a](results/exp0/curve_loss_f1_map.jpg)
 
 ### Valid
-##### plot
+##### plots for each class (left:class-0, right:class-1)
 ![a](results/exp0/curve_pr.jpg)
 ![a](results/exp0/curve_prf.jpg)
 ![a](results/exp0/curve_roc.jpg)
@@ -137,12 +137,12 @@ The code will be executed in the following steps:
 | ...                            | ...   | ...            |
 | .../test_set/dogs/dog.4099.jpg | 1     | (0.007, 0.993) |
 
-##### visualization of false classified images ()
-![a](results/exp0/confusion/gt_0_pd_1/cat4008.jpg)
+##### visualization of false classified images
+![a](results/exp0/confusion/gt_0_pd_1/cat.4008.jpg)
 The difficulty might be the cage.
 p(cats)=0.807, p(dogs)=0.193, but the best threshold = 0.10
 
 ### Infer
 ##### visualization of the most unconfident data
-![a](results/exp0/worst_imgs/cat4087.jpg)
+![a](results/exp0/worst_imgs/cat.4087.jpg)
 The difficulty might be the vague.
