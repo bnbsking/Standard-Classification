@@ -218,15 +218,15 @@ def row_plot_1d(data, xlabel_list, ylabel_list, legend_list, save_path):
     save_path: str e.g. *.jpg
     """
     n = len(data)
-    plt.figure(figsize=(6*n,4))
+    plt.figure(figsize=(5*n,4))
     zip_gen = zip(data, xlabel_list, ylabel_list, legend_list)
     for i, (curves, xlabel, ylabel, legend) in enumerate(zip_gen):
         plt.subplot(1,n,1+i)
         for curve in curves:
             plt.plot(curve)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.legend(legend) if legend is not None else None
+        plt.xlabel(xlabel, fontsize=16)
+        plt.ylabel(ylabel, fontsize=16)
+        plt.legend(legend, fontsize=16) if legend is not None else None
     plt.savefig(save_path)
 
 
@@ -235,16 +235,16 @@ def row_plot_2d(data_x, data_y, xlabel_list, ylabel_list, legend_list, save_path
     similar to row_plot_1d, but plot x and y
     """
     n = len(data_x)
-    plt.figure(figsize=(6*n,4))
+    plt.figure(figsize=(5*n,4))
     zip_gen = zip(data_x, data_y, xlabel_list, ylabel_list, legend_list)
     for i, (curves_x, curves_y, xlabel, ylabel, legend) in enumerate(zip_gen):
         plt.subplot(1,n,1+i)
         for curve_x, curve_y, label in zip(curves_x, curves_y, legend):
             plt.plot(curve_x, curve_y, label=label)
             plt.scatter(curve_x, curve_y)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
+        plt.xlabel(xlabel, fontsize=16)
+        plt.ylabel(ylabel, fontsize=16)
         plt.xlim(-0.1,1.1)
         plt.ylim(-0.1,1.1)
-        plt.legend()
+        plt.legend(fontsize=16)
     plt.savefig(save_path)

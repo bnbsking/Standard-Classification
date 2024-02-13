@@ -101,19 +101,48 @@ The code will be executed in the following steps:
 + Feel free to contact me if you have any question. Thanks.
 
 # Results
-### Training plot
+### Train
+##### plot
 ![a](results/exp0/curve_loss_f1_map.jpg)
-### Validation plot
+
+### Valid
+##### plot
 ![a](results/exp0/curve_pr.jpg)
 ![a](results/exp0/curve_prf.jpg)
 ![a](results/exp0/curve_roc.jpg)
-### default_threshold = 0.5
+##### default_threshold = 0.5
 | AP 0  | AP 1  | f1 0 | f1 1 | precision 0 | precision 1 | recall 0 | recall 1 | mAUC  |
 | -     | -     | -    | -    | -           | -           | -        | -        | -     | 
 | 0.992 | 0.986 | 0.95 | 0.94 | 0.93        | 0.96        | 0.96     | 0.93     | 0.989 |
-Confusion matrix = [[GT0_PD0, GT0_PD1], [GT1_PD0, GT1_PD1]] = [[95, 4], [7, 92]]
-### best_threshold = 0.1 (best f1 threshold optimization) 
+
+|      | PD=0 | PD=1 |
+| -    | -    | -    |
+| GT=0 | 95   | 4    |
+| GT=1 | 7    | 92   |
+
+##### best_threshold = 0.1 (best f1 threshold optimization) 
 | AP 0  | AP 1  | f1 0 | f1 1 | precision 0 | precision 1 | recall 0 | recall 1 | mAUC  |
 | -     | -     | -    | -    | -           | -           | -        | -        | -     | 
 | 0.992 | 0.986 | 0.96 | 0.96 | 1.00        | 0.93        | 0.92     | 1.00     | 0.989 |
-Confusion matrix = [[GT0_PD0, GT0_PD1], [GT1_PD0, GT1_PD1]] = [[91, 8], [0, 99]]
+
+|      | PD=0 | PD=1 |
+| -    | -    | -    |
+| GT=0 | 91   | 8    |
+| GT=1 | 0    | 99   |
+
+##### prediction e.g. pred_valid.csv
+| data                           | label | pred_probs_all |
+| -                              | -     | -              | 
+| .../test_set/cats/cat.4001.jpg | 0     | (0.998, 0.002) |
+| ...                            | ...   | ...            |
+| .../test_set/dogs/dog.4099.jpg | 1     | (0.007, 0.993) |
+
+##### visualization of false classified images ()
+![a](results/exp0/confusion/gt_0_pd_1/cat4008.jpg)
+The difficulty might be the cage.
+p(cats)=0.807, p(dogs)=0.193, but the best threshold = 0.10
+
+### Infer
+##### visualization of the most unconfident data
+![a](results/exp0/worst_imgs/cat4087.jpg)
+The difficulty might be the vague.

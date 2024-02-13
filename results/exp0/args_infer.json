@@ -1,0 +1,1 @@
+{"mode": "infer", "batch_size": 16, "output_dim": 1, "resume": "results/exp0/model.pt", "epochs": 20, "results": "./results/exp0", "threshold_opt": "f1", "backbone": "resnet50", "pretrained": true, "optim_algo": "adam", "lr": 0.0001, "lr_scheduler": "linear"}
