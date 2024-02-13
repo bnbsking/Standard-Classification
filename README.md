@@ -107,9 +107,11 @@ The code will be executed in the following steps:
 
 ### mode = valid
 + plots for each class (left:class-0, right:class-1)
+
 ![a](results/exp0/curve_pr.jpg)
 ![a](results/exp0/curve_prf.jpg)
 ![a](results/exp0/curve_roc.jpg)
+
 + default_threshold = 0.5
 
 | AP 0  | AP 1  | f1 0 | f1 1 | precision 0 | precision 1 | recall 0 | recall 1 | mAUC  |
@@ -141,6 +143,7 @@ The code will be executed in the following steps:
 | .../test_set/dogs/dog.4099.jpg | 1     | (0.007, 0.993) |
 
 + visualization of false classified images
+
 ![a](results/exp0/confusion/gt_0_pd_1/cat.4008.jpg)
 
 cat.4008.jpg. The difficulty might be the cage.
@@ -148,6 +151,7 @@ p(cats)=0.807, p(dogs)=0.193, but the best threshold = 0.10
 
 ### mode = infer
 + visualization of the most unconfident data
+
 ![a](results/exp0/worst_imgs/cat.4087.jpg)
 
 cat.4087.jpg. The difficulty might be the vague.
